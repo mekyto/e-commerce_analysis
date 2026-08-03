@@ -19,6 +19,33 @@ SELECT *,
 FROM customers
 ORDER BY lifetime_revenue DESC;
 
+--it is creating table for analysis of seasonality of orders
+SELECT
+    EXTRACT(YEAR FROM created_at::timestamp) AS year,
+    EXTRACT(MONTH FROM created_at::timestamp) AS month,
+    COUNT(order_id) AS orders,
+    SUM(price_usd) AS revenue
+FROM orders
+GROUP BY
+    EXTRACT(YEAR FROM created_at::timestamp),
+    EXTRACT(MONTH FROM created_at::timestamp)
+ORDER BY
+    year,
+    month;
+
+--creating a table for quarter analysis
+SELECT
+    CASE
+        WHEN EXTRACT(MONTH FROM created_at::timestamp) IN (1,2,3) THEN 'Q1'
+        WHEN EXTRACT(MONTH FROM created_at::timestamp) IN (4,5,6) THEN 'Q2'
+        WHEN EXTRACT(MONTH FROM created_at::timestamp) IN (7,8,9) THEN 'Q3'
+        ELSE 'Q4'
+    END AS quarter,
+    SUM(price_usd) AS revenue
+FROM orders
+GROUP BY quarter
+ORDER BY quarter;
+
 
 --2 part:Every segments summary
 SELECT
@@ -41,10 +68,10 @@ SELECT
     COUNT(DISTINCT o.user_id) AS user_count,
     COUNT(DISTINCT o.order_id) AS order_count,
     SUM(price_usd) AS total_revenue,
-    ROUND((COUNT(DISTINCT o.order_id)*100.0)/COUNT(DISTINCT w.website_session_id)::numeric,2) AS conversion_rate,
+    ROUND((COUNT(DISTINCT o.order_id)*100.0)/COUNT(DISTINCT w.website_session_id)::numeric,2) AS conversion_rate
 FROM website_sessions w
 LEFT JOIN orders o ON o.website_session_id=w.website_session_id
-GROUP BY is_repeat_session;
+GROUP BY session_order;
 --INSIGHT:They bring in significantly more money ($1.56 million versus $372k)
 --and make up the most revenue of business.This confirms the overall problem:
 --and this confirms the main problem, which is that the business is very weak at
